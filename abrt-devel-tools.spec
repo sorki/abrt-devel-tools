@@ -1,10 +1,10 @@
+%global commit a07dd2e97f9492c8e9d710a1f0787476ecf83d7e
+%global shortcommit %(c=%{commit}; echo ${c:0:7})
+
 Name:           abrt-devel-tools
 Version:        1.0
-Release:        1%{?dist}
+Release:        1.git%{shortcommit}%{?dist}
 Summary:        Universal screencasting frontend with pluggable support for various backends
-
-%global commit fde2fa327c9ce1669ad3aea4df36a893ad37cb1d
-%global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 Group:          Applications/System
 License:        GPLv2+
