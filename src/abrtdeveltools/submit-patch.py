@@ -1,0 +1,69 @@
+import git
+import sys
+from abrtgithub import get_team_repos, get_repo
+from configreader import read_config
+from patchreview import check_signoff, check_ticket
+from subprocess import Popen, PIPE
+import github
+import os
+
+OK = 0
+FAIL = 1
+CONFIG_PATH = os.path.expanduser("~/.config/abrt-devel-tools/")
+
+def get_commits():
+    commits = []
+    raw_commits = Popen(["git", "cherry", "master"], stdout=PIPE, bufsize=-1).communicate()[0]
+    for line in raw_commits.split('\n'):
+        if line:
+            commits.append(line.strip('+').strip(' '))
+
+    return commits
+
+def get_repo_dict():
+    repo_dict = {}
+    ghrepos = get_team_repos(*read_config(path_to_conf=CONFIG_PATH + "github.conf"))
+    for ghrepo in ghrepos:
+        repo_dict[ghrepo.name] = ghrepo
+
+    return repo_dict
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print "Usage:\n\tpull-request reponame"
+        sys.exit(1)
+
+    git_repo = git.Repo(".")  # must be run from the to dir in the git tree (dir containing .git/)
+    ref = git_repo.head.reference
+
+    print "Checking commits"
+    retval = OK
+    # we want all refs except the first one which is the branching
+    for entry in get_commits():  # entry is sha1 commit id
+        tmp_commit = git_repo.commit(entry)
+        for commit in git_repo.iter_commits(ref):  # iterates over ALL commits in all branches, ugly, but I didn't find anything better
+
+            if commit == tmp_commit:  # is it a regular commit and it's also in current branch refs? YES? -> check it!
+                print "Checking commit: ", commit
+                retval |= check_signoff(commit, commit.message)
+                retval |= check_ticket(commit, commit.message)
+
+    if retval:
+        sys.exit(FAIL)
+
+
+    origin = git_repo.remotes.origin
+    origin.push(ref)
+
+    #repo_dict = {"test": get_repo(*read_config(path_to_conf=CONFIG_PATH + "github.conf"), reponame=sys.argv[1])}
+    repo_dict = get_repo_dict()
+    print "Creating create pull request from branch '{0}' to master branch of repo '{1}'".format(ref, repo_dict[sys.argv[1]])
+    try:
+        pull = repo_dict[sys.argv[1]].create_pull(title=ref.commit.message, body="", base="master", head=str(ref))
+        if pull:
+            print "Successfully created new pull request: '{0}'".format(pull.html_url)
+    except github.GithubException as ex:
+        print "Can't create pull request: '{0}'".format(ex.data["errors"][0]["message"])
+
+    sys.exit(0)
