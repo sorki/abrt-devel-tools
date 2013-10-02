@@ -61,7 +61,16 @@ if __name__ == "__main__":
     repo_dict = get_repo_dict()
     print "Creating create pull request from branch '{0}' to master branch of repo '{1}'".format(ref, repo_dict[sys.argv[1]].name)
     try:
-        pull = repo_dict[sys.argv[1]].create_pull(title=ref.commit.message, body="", base="master", head=str(ref))
+        # we can safely assume there are multiple newlines as there are prior
+        # checks for signoff lines and ticket numbers
+        nl_pos = ref.commit.message.find('\n')
+        pull_request_title = ref.commit.message[:nl_pos]
+        pull_request_body = ref.commit.message[nl_pos + 1:]
+
+        pull = repo_dict[sys.argv[1]].create_pull(title=pull_request_title,
+                                                  body=pull_request_body,
+                                                  base="master",
+                                                  head=str(ref))
         if pull:
             print "Successfully created new pull request: '{0}'".format(pull.html_url)
     except github.GithubException as ex:
