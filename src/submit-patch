@@ -2,7 +2,7 @@
 
 import git
 import sys
-from abrtdeveltools.abrtgithub import get_team_repos, get_repo
+from abrtdeveltools.abrtgithub import get_team_repos
 from abrtdeveltools.configreader import read_config
 from abrtdeveltools.patchreview import check_signoff, check_ticket
 from subprocess import Popen, PIPE
