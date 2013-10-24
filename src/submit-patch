@@ -18,7 +18,7 @@ def get_commits():
     raw_commits = Popen(["git", "cherry", "master"], stdout=PIPE, bufsize=-1).communicate()[0]
     for line in raw_commits.split('\n'):
         if line:
-            commits.append(line.strip('+').strip(' '))
+            commits.append(line.strip('+').strip('-').strip(' '))
 
     return commits
 
